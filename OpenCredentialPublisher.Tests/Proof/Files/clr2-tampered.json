@@ -1,0 +1,120 @@
+﻿{
+  "issuer": {
+    "id": "urn:uuid:018f8943-d35d-73a8-ab8c-49e44d8ba25a",
+    "name": "TurnPoint QA-TAMPERED-"
+  },
+    "credentialSubject": {
+        "identifier": [
+            {
+                "type": "IdentityObject",
+                "hashed": false,
+                "identityHash": "jason.wisener@rev3labs.com",
+                "identityType": "emailAddress"
+            },
+          {
+            "type": "IdentityObject",
+            "hashed": false,
+            "identityHash": "Jason Wisener",
+            "identityType": "name"
+          }
+        ],
+        "verifiableCredential": [
+            {
+                "issuer": {
+                    "id": "urn:uuid:018f8943-d35d-73a8-ab8c-49e44d8ba25a",
+                    "type": "Profile",
+                    "name": "TurnPoint QA"
+                },
+                "credentialSubject": {
+                    "achievement": {
+                        "id": "https://ky.opensalt.net/uri/df0ec634-4a0e-11ef-9c97-0242ac1e0003",
+                        "type": "Achievement",
+                        "achievementType": "Badge",
+                        "criteria": {
+                            "id": "https://ky.opensalt.net/uri/df0ec634-4a0e-11ef-9c97-0242ac1e0003.html",
+                            "narrative": "- Turnpoint, Readiness Level-3"
+                        },
+                        "description": "This award represents completion of three rounds of interviews and acceptance as a employee apprentice in the TurnPoint plumber apprentice program.",
+                        "humanCode": "Plumber Ready 4 - Apprentice Plumber's Assistant",
+                        "image": {
+                            "id": "https://raw.githubusercontent.com/opensalt/files/main/Plumber%20Suitable%20L4.png",
+                            "type": "Image"
+                        },
+                        "name": "Turnpoint, Apprentice Plumber's Assistant"
+                    },
+                    "identifier": [
+                        {
+                            "type": "IdentityObject",
+                            "hashed": false,
+                            "identityHash": "jason.wisener@rev3labs.com",
+                            "identityType": "emailAddress"
+                        },
+                        {
+                            "type": "IdentityObject",
+                            "hashed": false,
+                            "identityHash": "Jason Wisener",
+                            "identityType": "name"
+                        }
+                    ],
+                    "result": [],
+                    "id": "urn:uuid:0190f044-b9fa-7506-93b0-760450502afd"
+                },
+                "awardedDate": "2024-08-16T20:28:38+00:00",
+                "evidence": [],
+                "@context": [
+                    "https://www.w3.org/ns/credentials/v2",
+                    "https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json",
+                    "https://purl.imsglobal.org/spec/ob/v3p0/extensions.json"
+                ],
+                "type": [
+                    "VerifiableCredential",
+                    "AchievementCredential"
+                ],
+                "id": "urn:uuid:01915ce0-bfb2-76b7-aaea-4185e5a70539",
+                "name": "Turnpoint, Apprentice Plumber's Assistant",
+                "description": "This award represents completion of three rounds of interviews and acceptance as a employee apprentice in the TurnPoint plumber apprentice program.",
+                "proof": {
+                    "type": "Ed25519Signature2020",
+                    "created": "2024-08-16T20:29:56.2299954Z",
+                    "proofPurpose": "assertionMethod",
+                    "verificationMethod": "did:key:z6MkwHheSnA5p2fWvd2mEjCeN3LzkRkqYYvvooHPwtbxuVWs",
+                    "proofValue": "zrwKG4W15vUBbs5XWQGi2ACuoma43f9LTJhgwp47tCd6FxZECYnseMYMFe4kZYjFb9UNZXaW2z5myDSqC1sRJBHV",
+                    "nonce": "ZGQ3OWM5MTEtOTFjMy00ZDAxLTljMjctZWFiOTYxZTVkYmIz"
+                }
+            }
+        ],
+        "id": "urn:uuid:0190f044-b9fa-7506-93b0-760450502afd"
+    },
+    "partial": true,
+    "awardedDate": "2024-08-16T20:29:56+00:00",
+    "validFrom": "2024-08-16T20:28:38+00:00",
+    "@context": [
+        "https://www.w3.org/ns/credentials/v2",
+        "https://purl.imsglobal.org/spec/clr/v2p0/context-2.0.1.json",
+        "https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json",
+        "https://purl.imsglobal.org/spec/ob/v3p0/extensions.json"
+    ],
+    "type": [
+        "VerifiableCredential",
+        "ClrCredential"
+    ],
+    "id": "https://randaocpservice-test.azurewebsites.net/api/credentials/01915ce0-bfc7-7f0e-b33c-0bd53a2a3ddb",
+    "name": "Turnpoint, Apprentice Plumber's Assistant",
+    "image": {
+        "id": "https://raw.githubusercontent.com/opensalt/files/main/Plumber%20Suitable%20L4.png",
+        "type": "Image"
+    },
+    "issuanceDate": "2024-08-16T20:29:56Z",
+    "proof": {
+        "type": "Ed25519Signature2020",
+        "created": "2024-08-16T20:29:57.1420130Z",
+        "proofPurpose": "assertionMethod",
+        "verificationMethod": "did:key:z6MknyAULbhvrere5PQ2CJEgHuTK6vSVpv2KvmsZhdHCuogW",
+        "proofValue": "z28zbK5unRNLuREfyEJfuKD5PXnwV4fFtSkGbZQ2nYJWAFZt8AThzwpUFHPFa9gfAodf5QiNDKYDZS6zbXuoxqoJ7",
+        "nonce": "NWNjN2Y3ZTAtNjRjMS00MzJiLThlNzAtZWQzY2UzMjJhYmEy"
+    },
+    "credentialStatus": {
+        "id": "https://randaocpservice-test.azurewebsites.net/api/status/vVwWfchQPgrMmxCQnoroeaYwR2Og06lD",
+        "type": "RevocationList"
+    }
+}

@@ -1,0 +1,32 @@
+﻿using System.Collections.Generic;
+using System.Text.Json.Serialization;
+using Newtonsoft.Json;
+
+namespace OpenCredentialPublisher.Data.Custom.CredentialModels
+{
+    public class RelatedModel
+    {
+        public RelatedModel()
+        {
+
+        }
+
+        [JsonProperty("id", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("id")]
+        public string Id { get; set; }
+
+        [JsonProperty("type", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("type")]
+        [Newtonsoft.Json.JsonConverter(typeof(Shared.Converters.Newtonsoft.SingleOrArrayConverter<string>))]
+        [System.Text.Json.Serialization.JsonConverter(typeof(Shared.Converters.Json.SingleOrListConverter<string>))]
+        public List<string> Type { get; set; }
+
+        [JsonProperty("@language", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("@language")]
+        public string Language { get; set; }
+
+        [JsonProperty("version", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("version")]
+        public string Version { get; set; }
+    }
+}

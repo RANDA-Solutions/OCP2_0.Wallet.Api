@@ -1,0 +1,46 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- main
+
+pool:
+  name: default
+
+variables:
+  solution: '**/*.sln'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+
+steps:
+- task: NuGetToolInstaller@1
+  inputs:
+    versionSpec: '>=6.7.0'
+    checkLatest: true
+
+- task: UseDotNet@2
+  inputs:
+    packageType: 'sdk'
+    version: '8.0.301'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'restore'
+    projects: '*.sln'
+    feedsToUse: 'select'
+    vstsFeed: '6c32f552-2e28-43f9-8532-0af25cddb450'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'publish'
+    publishWebProjects: false
+    projects: 'OpenCredentialPublisher.Wallet/*.csproj'
+    arguments: '--no-restore --configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+    modifyOutputPath: false
+
+- task: PublishPipelineArtifact@1
+  inputs:
+    targetPath: '$(Build.ArtifactStagingDirectory)' 
+    artifactName: 'API'
