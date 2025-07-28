@@ -33,6 +33,20 @@ namespace OpenCredentialPublisher.Wallet.Controllers.Account
             var setupModel = new VerifyEmailResponseModel
             {
                 Email = email,
+                Status = GetAgentSetupStatusInitial(user)
+            };
+
+            return ApiOk(setupModel);
+        }
+
+        [HttpPost("Email/AccessCode")]
+        public async Task<IActionResult> GetAccessCodeEmailAsync(VerificationNeededRequestModel model)
+        {
+            var user = await _userManager.FindByEmailAsync(model.Email);
+
+            var setupModel = new VerifyEmailResponseModel
+            {
+                Email = model.Email,
                 Status = GetAgentSetupStatus(user)
             };
 
@@ -106,6 +120,26 @@ namespace OpenCredentialPublisher.Wallet.Controllers.Account
             if (string.IsNullOrEmpty(user.PasswordHash) && !user.EmailConfirmed)
             {
                 return AccountSetupStatusEnum.VerifyEmailNeeded;
+            }
+
+            if (string.IsNullOrEmpty(user.PasswordHash) && user.EmailConfirmed)
+            {
+                return AccountSetupStatusEnum.AccountSetupNeeded;
+            }
+
+            return AccountSetupStatusEnum.AccountComplete;
+        }
+
+        private AccountSetupStatusEnum GetAgentSetupStatusInitial(ApplicationUser user)
+        {
+            if (user == null)
+            {
+                return AccountSetupStatusEnum.AccountNotFound;
+            }
+
+            if (string.IsNullOrEmpty(user.PasswordHash) && !user.EmailConfirmed)
+            {
+                return AccountSetupStatusEnum.VerifyEmailRequestNeeded;
             }
 
             if (string.IsNullOrEmpty(user.PasswordHash) && user.EmailConfirmed)

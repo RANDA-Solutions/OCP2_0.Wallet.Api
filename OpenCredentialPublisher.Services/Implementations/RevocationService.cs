@@ -13,10 +13,11 @@ using OpenCredentialPublisher.Data.Custom.Contexts;
 using OpenCredentialPublisher.Data.Custom.CredentialModels;
 using OpenCredentialPublisher.Data.Custom.EFModels;
 using OpenCredentialPublisher.Data.Custom.Results;
+using OpenCredentialPublisher.Services.Interfaces;
 
 namespace OpenCredentialPublisher.Services.Implementations
 {
-    public class RevocationService
+    public class RevocationService : IRevocationService
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly WalletDbContext _context;
@@ -24,7 +25,7 @@ namespace OpenCredentialPublisher.Services.Implementations
 
         public RevocationService(
             IHttpClientFactory httpClientFactory,
-            WalletDbContext context, 
+            WalletDbContext context,
             ILogger<RevocationService> logger)
         {
             _httpClientFactory = httpClientFactory;
@@ -32,7 +33,7 @@ namespace OpenCredentialPublisher.Services.Implementations
             _logger = logger;
         }
 
-        public async Task<RevocationResult> CheckAndRevokeCredentialAsync( long verifiableCredentialId)
+        public async Task<RevocationResult> CheckAndRevokeCredentialAsync(long verifiableCredentialId)
         {
             try
             {
@@ -110,7 +111,7 @@ namespace OpenCredentialPublisher.Services.Implementations
                 var credentialStatus = FindOutermostCredentialStatus(json);
                 if (credentialStatus == null)
                 {
-                    return new RevocationResult { IsRevoked = false, RevokedReason = null};
+                    return new RevocationResult { IsRevoked = false, RevokedReason = null };
                 }
 
                 using var client = _httpClientFactory.CreateClient();
@@ -120,10 +121,10 @@ namespace OpenCredentialPublisher.Services.Implementations
                 using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
                 response.EnsureSuccessStatusCode();
 
-                var summaryResult =  System.Text.Json.JsonSerializer.Deserialize<RevocationSummaryResult>(await response.Content.ReadAsStringAsync());
+                var summaryResult = System.Text.Json.JsonSerializer.Deserialize<RevocationSummaryResult>(await response.Content.ReadAsStringAsync());
                 if (summaryResult is { Revocations: not null })
                 {
-                    
+
                     if (summaryResult.Revocations.Any(x => x.Id == verifiableCredentialModelId))
                     {
 

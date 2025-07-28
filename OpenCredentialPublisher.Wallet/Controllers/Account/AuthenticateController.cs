@@ -15,14 +15,15 @@ using Microsoft.Extensions.Options;
 using OpenCredentialPublisher.Data.Models;
 using OpenCredentialPublisher.Services.Extensions;
 using OpenCredentialPublisher.Wallet.Models.Account;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace OpenCredentialPublisher.Wallet.Controllers.Account
 {
     [Route("api/[controller]")]
     [ApiController]
+    [SwaggerTag("Handles user authentication, including login and token refresh.")]
     public class AuthenticateController : ControllerBase
     {
-
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly JwtConfiguration _jwtConfiguration;
 
@@ -36,9 +37,14 @@ namespace OpenCredentialPublisher.Wallet.Controllers.Account
 
         [HttpPost]
         [Route("login")]
+        [SwaggerOperation(
+            Summary = "Authenticate a user and generate a JWT token.",
+            Description = "Validates the user's credentials and returns a JWT token if successful."
+        )]
+        [SwaggerResponse(StatusCodes.Status200OK, "Authentication successful.", typeof(object))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Authentication failed.")]
         public async Task<IActionResult> Login([FromBody] LoginRequestModel.InputRequestModel model)
         {
-
             if (ModelState.IsValid)
             {
                 var user = await _userManager.FindByNameAsync(model.Email) ?? await _userManager.FindByEmailAsync(model.Email);
@@ -78,6 +84,12 @@ namespace OpenCredentialPublisher.Wallet.Controllers.Account
         [Authorize]
         [HttpPost]
         [Route("refresh")]
+        [SwaggerOperation(
+            Summary = "Refresh the JWT token.",
+            Description = "Generates a new JWT token for an authenticated user."
+        )]
+        [SwaggerResponse(StatusCodes.Status200OK, "Token refreshed successfully.", typeof(object))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "User is not authenticated.")]
         public async Task<IActionResult> Refresh()
         {
             await Task.Delay(0);
@@ -106,9 +118,10 @@ namespace OpenCredentialPublisher.Wallet.Controllers.Account
                 expires: DateTime.Now.AddHours(3),
                 claims: authClaims,
                 signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
-                );
+            );
 
             return token;
         }
     }
 }
+

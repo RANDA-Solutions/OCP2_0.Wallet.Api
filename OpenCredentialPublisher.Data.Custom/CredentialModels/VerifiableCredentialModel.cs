@@ -9,7 +9,7 @@ namespace OpenCredentialPublisher.Data.Custom.CredentialModels
 
         [JsonProperty("@context", Order = 1, NullValueHandling = NullValueHandling.Ignore)]
         [JsonPropertyName("@context")]
-        public List<string> Context { get; set; }
+        public List<object> Context { get; set; }
 
         [JsonProperty("type", Order = 2, NullValueHandling = NullValueHandling.Ignore)]
         [JsonPropertyName("type")]

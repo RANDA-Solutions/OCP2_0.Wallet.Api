@@ -3,6 +3,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using LevelData.Credentials.DIDForge.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -145,11 +146,10 @@ namespace OpenCredentialPublisher.Wallet
             services.AddDbContext<WalletDbContext>(options =>
             {
                 options.UseSqlServer(connectionString,
-                    sql =>
-                    {
+                    sql => {
                         sql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
                         sql.EnableRetryOnFailure(5);
-                    });
+                     });
             });
 
             if (Environment.IsDevelopment())
@@ -162,15 +162,14 @@ namespace OpenCredentialPublisher.Wallet
             services.AddSingleton(_ => Configuration.GetSection(nameof(MailSettings)).Get<MailSettings>());
 
             services.AddTransient<IEmailSender, EmailService>();
+            services.AddDidResolvers(); 
 
-
-            RegisterServices.AppServiceRegistration(services); //<=====================================================================================
+            RegisterServices.AppServiceRegistration(services); 
 
             services.AddCors(options => CorsConfig.CorsOptions(options, siteSettingsOptions));
 
             services.TryAddSingleton<IActionContextAccessor, ActionContextAccessor>();
-            services.AddScoped(x =>
-            {
+            services.AddScoped(x => {
                 var actionContext = x.GetRequiredService<IActionContextAccessor>().ActionContext;
                 var factory = x.GetRequiredService<IUrlHelperFactory>();
                 return factory.GetUrlHelper(actionContext!);
@@ -179,15 +178,14 @@ namespace OpenCredentialPublisher.Wallet
             // ConfigureModelBindingExceptionHandling(services);
 
             services.AddIdentity<ApplicationUser, IdentityRole>(
-                    options =>
-                    {
+                    options => {
                         options.SignIn.RequireConfirmedAccount = true;
                         options.Password.RequireDigit = false;
-                        options.Password.RequireLowercase = true;
-                        options.Password.RequireUppercase = true;
-                        options.Password.RequireNonAlphanumeric = true;
+                        options.Password.RequireLowercase = true; 
+                        options.Password.RequireUppercase = true; 
+                        options.Password.RequireNonAlphanumeric = true; 
                         options.Password.RequiredLength = 6;
-                        options.Password.RequiredUniqueChars = 0;
+                        options.Password.RequiredUniqueChars = 0; 
                     })
                 .AddEntityFrameworkStores<WalletDbContext>()
                 .AddDefaultTokenProviders();
@@ -219,14 +217,12 @@ namespace OpenCredentialPublisher.Wallet
                         };
                     });
 
-            services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
-            {
+            services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options => {
                 options.Events = new JwtBearerEvents
                 {
                     OnMessageReceived = context =>
                     {
                         if (context.Request.Path.Value!.StartsWith("/hubs")
-
                             && context.Request.Headers.TryGetValue("Bearer", out StringValues token)
                         )
                         {
@@ -239,7 +235,7 @@ namespace OpenCredentialPublisher.Wallet
                 };
             }
             );
-            services.ConfigureApplicationCookie(options =>
+            services.ConfigureApplicationCookie(options =>  
             {
                 options.SlidingExpiration = true;
                 options.ExpireTimeSpan = TimeSpan.FromSeconds(siteSettingsOptions.SessionTimeout);
@@ -253,6 +249,47 @@ namespace OpenCredentialPublisher.Wallet
             services.AddControllers();
 
             services.AddSignalR();
+
+            // Add Swagger services
+            services.AddSwaggerGen(options =>
+            {
+                options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+                {
+                    Title = "OpenCredentialPublisher API",
+                    Version = "v1",
+                    Description = "API documentation for OpenCredentialPublisher.Wallet"
+                });
+
+                // Optional: Add security definition for JWT if your API uses authentication
+                options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT",
+                    In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+                    Description = "Enter 'Bearer' [space] and then your token in the text input below.\n\nExample: 'Bearer abc123xyz'"
+                });
+
+                options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+                {
+                    {
+                        new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                        {
+                            Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                            {
+                                Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
+                options.EnableAnnotations();
+
+                // Use fully qualified names for schema IDs to avoid conflicts
+                options.CustomSchemaIds(type => type.FullName);
+            });
             //services.AddMediatR(typeof(Startup), typeof(EPMSResponseHandler));
         }
 
@@ -267,7 +304,7 @@ namespace OpenCredentialPublisher.Wallet
                 return body;
             }
         }
-
+        
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IServiceProvider services)
         {
@@ -276,7 +313,7 @@ namespace OpenCredentialPublisher.Wallet
             app.UseCookiePolicy(new CookiePolicyOptions
             {
                 CheckConsentNeeded = _ => true,
-                MinimumSameSitePolicy = SameSiteMode.None
+                MinimumSameSitePolicy = SameSiteMode.None   
             });
             app.UseForwardedHeaders();
             var basePath = Configuration[Wallet.Configuration.BasePath];
@@ -315,6 +352,16 @@ namespace OpenCredentialPublisher.Wallet
                 appBuilder.UseApiErrorHandlingMiddleware();
             });
 
+            // Enable Swagger middleware
+            app.UseSwagger();
+
+            // Enable Swagger UI
+            app.UseSwaggerUI(options =>
+            {
+                options.SwaggerEndpoint("/swagger/v1/swagger.json", "OpenCredentialPublisher API v1");
+                options.RoutePrefix = string.Empty; // Set Swagger UI at the app's root (e.g., http://localhost:5000/)
+            });
+
 
             app.UseRouting();
             app.UseCors(CorsConfig.PolicyName);
@@ -346,7 +393,7 @@ namespace OpenCredentialPublisher.Wallet
         //            //   actionContext.HttpContext.Request.Path.Value, 
         //            //   error.Errors.Values);
         //            var uri = actionContext.HttpContext.Request.Path;
-
+                    
         //            return new BadRequestObjectResult(error);
         //        };
         //    });
@@ -378,7 +425,7 @@ namespace OpenCredentialPublisher.Wallet
             }
 
             //Here you could create a super user who will maintain the web app
-
+            
         }
     }
 
@@ -399,3 +446,4 @@ namespace OpenCredentialPublisher.Wallet
 
 
 }
+    

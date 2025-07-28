@@ -15,15 +15,12 @@ using OpenCredentialPublisher.Data.Custom.Commands;
 using OpenCredentialPublisher.Wallet.Models.Revocation;
 using Microsoft.Extensions.Options;
 using OpenCredentialPublisher.Data.Custom.Options;
-using OpenCredentialPublisher.ClrWallet.Utilities;
-using System.Net.Http.Headers;
 
 namespace OpenCredentialPublisher.Wallet.Controllers
 {
     public class CredentialsController : SecureApiControllerBase<CredentialsController>
     {
         private readonly CredentialService _credentialService;
-        private readonly ETLService _etlService;
         private readonly RevocationService _revocationService;
         private readonly SiteSettingsOptions _siteSettings;
 
@@ -31,12 +28,10 @@ namespace OpenCredentialPublisher.Wallet.Controllers
         public CredentialsController(UserManager<ApplicationUser> userManager,
             ILogger<CredentialsController> logger, 
             CredentialService credentialService,
-            ETLService etlService,
             RevocationService revocationService,
             IOptions<SiteSettingsOptions> siteSettings) : base(userManager,logger)
         {
             _credentialService = credentialService;
-            _etlService = etlService;
             _revocationService = revocationService;
             _siteSettings = siteSettings.Value;
         }
@@ -128,46 +123,6 @@ namespace OpenCredentialPublisher.Wallet.Controllers
                 _logger.LogError(ex, "CredentialsController.DeleteAsync");
 
                 return StatusCode(500, "An error occurred attempting to remove the selected collection.");
-            }
-        }
-
-        [HttpPost("Upload"), DisableRequestSizeLimit]
-        [ProducesResponseType(200, Type = typeof(ApiResponse))]  /* success returns 200 - Ok */
-        public async Task<IActionResult> Upload()
-        {
-            try
-            {
-                var file = Request.Form.Files[0];
-                if (file.Length > 0)
-                {
-                    var fileName = ContentDispositionHeaderValue.Parse(file.ContentDisposition).FileName.Trim('"');
-                    var clrJson = await FileHelpers.ProcessFormFile("ClrUpload", file, ModelState);
-                    ModelState.Clear();
-                    if (!ModelState.IsValid) return ApiOkModelInvalid(ModelState);
-
-                    var result = await _etlService.ProcessJson(HttpContext.Request, ModelState, _userId, fileName, clrJson, null);
-
-                    if (result.HasError)
-                    {
-                        foreach (var err in result.ErrorMessages)
-                        {
-                            ModelState.AddModelError("ClrUpload", err);
-                        }
-                    }
-
-                    if (!ModelState.IsValid) return ApiOkModelInvalid(ModelState);
-
-                    return ApiOk(result.Id);
-                }
-                else
-                {
-                    ModelState.AddModelError("ClrUpload", "Please select a file to upload.");
-                    return ApiOkModelInvalid(ModelState);
-                }
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex}");
             }
         }
 

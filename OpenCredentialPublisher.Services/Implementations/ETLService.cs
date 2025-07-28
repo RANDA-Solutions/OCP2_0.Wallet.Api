@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Mail;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -17,10 +19,12 @@ using OpenCredentialPublisher.Data.Custom.EFModels;
 using OpenCredentialPublisher.Data.Custom.Results;
 using OpenCredentialPublisher.Proof;
 using OpenCredentialPublisher.Services.Extensions;
+using OpenCredentialPublisher.Services.Interfaces;
 using Achievement = OpenCredentialPublisher.Data.Custom.EFModels.Achievement;
 using Profile = OpenCredentialPublisher.Data.Custom.EFModels.Profile;
 using ProfileModel = OpenCredentialPublisher.Data.Custom.CredentialModels.ProfileModel;
 
+[assembly: InternalsVisibleTo("OpenCredentialPublisher.Tests")]
 namespace OpenCredentialPublisher.Services.Implementations
 {
     public class ETLService
@@ -29,21 +33,21 @@ namespace OpenCredentialPublisher.Services.Implementations
         public const string CREDENTIAL_ALREADY_LOADED = "That credential has already been loaded.";
 
         private readonly WalletDbContext _context;
-        private readonly SchemaService _schemaService;
+        private readonly ISchemaService _schemaService;
         private readonly ILogger<ETLService> _logger
             ;
-        private readonly ProofService _proofService2;
-        private readonly RevocationService _revocationService2;
+        private readonly IProofService _proofService;
+        private readonly IRevocationService _revocationService2;
 
-        public ETLService(SchemaService schemaService,
+        public ETLService(ISchemaService schemaService,
             WalletDbContext context,
-            ProofService proofService2,
+            IProofService proofService,
             ILogger<ETLService> logger, 
-            RevocationService revocationService2)
+            IRevocationService revocationService2)
         {
             _schemaService = schemaService;
             _context = context;
-            _proofService2 = proofService2;
+            _proofService = proofService;
             _logger = logger;
             _revocationService2 = revocationService2;
         }
@@ -63,14 +67,10 @@ namespace OpenCredentialPublisher.Services.Implementations
 
             var assemblyType = GetTypeFromJson(json);
 
-            SchemaService.SchemaResult schemaResult = null;
-            if (assemblyType == typeof(ClrCredentialModel))
+            SchemaService.SchemaResult schemaResult = _schemaService.Validate(json);
+            if (schemaResult.IsValid && assemblyType == typeof(ClrCredentialModel))
             {
-                schemaResult = _schemaService.Validate(json);
-                if (schemaResult.IsValid)
-                {
-                    return await ProcessClrCredential(userId, fileName, json, authorization);
-                }
+                return await ProcessClrCredential(userId, fileName, json, authorization);
             }
 
             if (schemaResult?.IsValid == false)
@@ -257,13 +257,13 @@ namespace OpenCredentialPublisher.Services.Implementations
         }
 
 
-        private async Task<List<VerifiableCredential>> CreateClrVerifiableCredentialsAsync(
+        internal async Task<List<VerifiableCredential>> CreateClrVerifiableCredentialsAsync(
             ClrCredentialModel clrCredentialModel, string packageJson)
         {
             var clrIssuerProfile = await GetOrCreateProfileAsync(clrCredentialModel.Issuer);
 
             var verifiableCredentialList = new List<VerifiableCredential>();
-            var isClrVerified = await _proofService2.VerifyProof(packageJson);
+            var isClrVerified = await _proofService.VerifyProof(packageJson);
             var clrRevocationResult = await CheckRevocationAsync(packageJson, null, clrCredentialModel.Id);
 
             var clrVerifiableCredential = new VerifiableCredential
@@ -283,15 +283,14 @@ namespace OpenCredentialPublisher.Services.Implementations
                 RevokedReason = clrRevocationResult.RevokedReason
             };
 
-
             verifiableCredentialList.Add(clrVerifiableCredential);
-
+            var associationModels = clrCredentialModel.CredentialSubject.Association;
+            var associationDictionary = new Dictionary<string, VerifiableCredential>();
             foreach (var model in clrCredentialModel.CredentialSubject.VerifiableCredential)
             {
                 var vcIssuerProfile = await GetOrCreateProfileAsync(model.Issuer);
 
-                //verify proof, allow for missing and or if it's invalid.
-                var isVerified = await _proofService2.VerifyProof(model.OriginalJson);
+                var isVerified = await _proofService.VerifyProof(model.OriginalJson);
                 var revocationResult = await CheckRevocationAsync(model.OriginalJson, clrVerifiableCredential, model.Id);
 
                 var verifiableCredential = new VerifiableCredential
@@ -308,8 +307,11 @@ namespace OpenCredentialPublisher.Services.Implementations
                     IsVerified = isVerified,
                     ImageUrl = model.Image?.Id,
                     IsRevoked = revocationResult.IsRevoked,
-                    RevokedReason = revocationResult.RevokedReason
+                    RevokedReason = revocationResult.RevokedReason,
+                    IsChild = associationModels != null && associationModels.Any(x => x.TargetId == model.Id)
                 };
+
+                associationDictionary[model.Id] = verifiableCredential;
 
                 verifiableCredentialList.Add(verifiableCredential);
                 if (model is AchievementCredentialModel achievementCredential)
@@ -332,6 +334,30 @@ namespace OpenCredentialPublisher.Services.Implementations
                     CreateResults(achievementCredential.CredentialSubject, verifiableCredential);
 
                     _context.Achievements2.Add(achievement);
+                }
+            }
+            
+            var associations = new List<Association>();
+            // Create associations
+            if (associationModels != null)
+            {
+                foreach (var associationModel in associationModels)
+                {
+                    
+                    var sourceVerifiableCredential = associationDictionary[associationModel.SourceId];
+                    
+                    var targetVerifiableCredential = associationDictionary[associationModel.TargetId];
+                    
+                    if (sourceVerifiableCredential != null && targetVerifiableCredential != null)
+                    {
+                        var association = new Association
+                        {
+                            SourceVerifiableCredential = sourceVerifiableCredential,
+                            TargetVerifiableCredential = targetVerifiableCredential,
+                            AssociationType = associationModel.AssociationType.ToString()
+                        };
+                        sourceVerifiableCredential.SourceAssociations.Add(association);
+                    }
                 }
             }
 
@@ -474,13 +500,16 @@ namespace OpenCredentialPublisher.Services.Implementations
 
 
             var email = clrCredentialModel.CredentialSubject?
-                .Identifier?.Where(sub => sub.IdentityType.Equals("emailaddress", StringComparison.InvariantCultureIgnoreCase))
+                .Identifier?.Where(sub =>
+                    sub.IdentityType.Equals("emailaddress", StringComparison.InvariantCultureIgnoreCase))
                 .Select(e => e.IdentityHash).FirstOrDefault();
+
 
             if (email != null)
                 return email;
 
             if (clrCredentialModel.CredentialSubject != null)
+            {
                 foreach (var model in clrCredentialModel.CredentialSubject.VerifiableCredential)
                 {
                     if (model is AchievementCredentialModel achievementCredential)
@@ -488,15 +517,29 @@ namespace OpenCredentialPublisher.Services.Implementations
                         var achievementSubject = achievementCredential.CredentialSubject;
                         email = achievementSubject
                             .Identifier?
-                            .Where(sub => sub.IdentityType.Equals("emailaddress", StringComparison.InvariantCultureIgnoreCase))
+                            .Where(sub =>
+                                sub.IdentityType.Equals("emailaddress", StringComparison.InvariantCultureIgnoreCase))
                             .Select(e => e.IdentityHash).FirstOrDefault();
 
                         if (email != null)
                             return email;
+
+                        //try based on actual value. 
+                        email = achievementSubject
+                            .Identifier?
+                            .Where(sub =>
+                                sub.IdentityType.Equals("identifier", StringComparison.InvariantCultureIgnoreCase))
+                            .Select(e => e.IdentityHash).FirstOrDefault();
+
+                        if (MailAddress.TryCreate(email, out var emailAddress))
+                        {
+                            return emailAddress.ToString();
+                        }
                     }
                 }
+            }
 
             return null;
-        }
+    }
     }
 }

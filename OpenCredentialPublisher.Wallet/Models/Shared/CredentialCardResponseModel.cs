@@ -35,6 +35,8 @@ namespace OpenCredentialPublisher.Wallet.Models.Shared
             IsVerified = verifiableCredential.IsVerified;
             IsRevoked = verifiableCredential.IsRevoked;
             RevokedReason = verifiableCredential.RevokedReason;
+
+            Associations = verifiableCredential.SourceAssociations.Select(sa => CredentialDetailsAssociationResponseModel.FromModel(sa.TargetVerifiableCredential)).ToImmutableList();
         }
 
         public long VerifiableCredentialId { get;  }
@@ -55,6 +57,7 @@ namespace OpenCredentialPublisher.Wallet.Models.Shared
 
         public IImmutableList<CredentialDetailsAlignmentResponseModel> Alignments { get;  } = ImmutableList<CredentialDetailsAlignmentResponseModel>.Empty;
         public IImmutableList<CredentialDetailsResultResponseModel> Results { get; } = ImmutableList<CredentialDetailsResultResponseModel>.Empty;
+        public IImmutableList<CredentialDetailsAssociationResponseModel> Associations { get; } = ImmutableList<CredentialDetailsAssociationResponseModel>.Empty;
 
         public bool HasEvidence { get; set; }
         public bool IsVerified { get; }

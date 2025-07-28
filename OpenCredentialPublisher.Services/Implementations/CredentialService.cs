@@ -75,6 +75,9 @@ namespace OpenCredentialPublisher.Services.Implementations
                     .ThenInclude(ccvc => ccvc.CredentialCollection)
                     .ThenInclude(cc => cc.ShareCredentialCollections)
                 .Include(vc => vc.Results)
+                .Include(vc => vc.SourceAssociations)
+                    .ThenInclude(sa => sa.TargetVerifiableCredential)
+                        .ThenInclude(tvc => tvc.Achievement)
                 .FirstOrDefaultAsync(vc => vc.CredentialPackage.UserId == userId &&
                                            vc.VerifiableCredentialId == verifiableCredentialId);
         }
