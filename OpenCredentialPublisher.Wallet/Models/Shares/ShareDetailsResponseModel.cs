@@ -12,6 +12,7 @@ namespace OpenCredentialPublisher.Wallet.Models.Shares
             ShareId = share.ShareId;
             Email = share.Email;
             Description = share.Description;
+            ShareType = share.ShareType;
             CreatedAt = share.CreatedAt.DateTime;
             CanDelete = share.UserId == userId;
 
@@ -27,6 +28,7 @@ namespace OpenCredentialPublisher.Wallet.Models.Shares
         public string Email { get; }
         public bool CanDelete { get; }
         public string Description { get; }
+        public string ShareType { get; }
         public DateTime CreatedAt { get; }
 
         public IImmutableList<long> VerifiableCredentialIds { get; } = ImmutableList<long>.Empty;

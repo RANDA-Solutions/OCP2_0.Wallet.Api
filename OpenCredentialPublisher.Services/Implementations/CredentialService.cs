@@ -1,10 +1,13 @@
-﻿using System.Collections.Immutable;
+﻿using System;
+using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using OpenCredentialPublisher.Data.Custom.Commands;
 using OpenCredentialPublisher.Data.Custom.Contexts;
 using OpenCredentialPublisher.Data.Custom.EFModels;
+using OpenCredentialPublisher.Shared.Custom.Models;
 
 namespace OpenCredentialPublisher.Services.Implementations
 {
@@ -75,6 +78,9 @@ namespace OpenCredentialPublisher.Services.Implementations
                     .ThenInclude(ccvc => ccvc.CredentialCollection)
                     .ThenInclude(cc => cc.ShareCredentialCollections)
                 .Include(vc => vc.Results)
+                .Include(vc => vc.SourceAssociations)
+                    .ThenInclude(sa => sa.TargetVerifiableCredential)
+                        .ThenInclude(tvc => tvc.Achievement)
                 .FirstOrDefaultAsync(vc => vc.CredentialPackage.UserId == userId &&
                                            vc.VerifiableCredentialId == verifiableCredentialId);
         }
@@ -86,7 +92,7 @@ namespace OpenCredentialPublisher.Services.Implementations
             var package = await _credentialPackageService.GetAsync(userId, credential.CredentialPackageId);
             credential?.Delete();
 
-            if (package != null && !package.ChildVerifiableCredentials.Any( x=> x.VerifiableCredentialId != verifiableCredentialId))
+            if (package != null && !package.ChildVerifiableCredentials.Any(x => x.VerifiableCredentialId != verifiableCredentialId))
             {
                 package.Delete();
             }
@@ -142,6 +148,66 @@ namespace OpenCredentialPublisher.Services.Implementations
                     (vc, r) => r.ResultId)
                 .CountAsync();
             return count;
+        }
+
+        public async Task<CredentialsReportDto> GetCredentialsReportAsync()
+        {
+            var offersResult = await _context.Notifications.AsNoTracking()
+                .IgnoreQueryFilters()
+                .Join(_context.Users.AsNoTracking(),
+                    n => n.UserId,
+                    u => u.Id,
+                    (n, u) => new { n, u })
+                .GroupBy(x => 1)
+                .Select(g => new
+                {
+                    OfferedUsers = g.Select(x => x.u.Id).Distinct().Count(),
+                    Offers = g.Select(x => x.n.NotificationId).Distinct().Count()
+                }).FirstOrDefaultAsync();
+
+            var credentialsResult = await _context.VerifiableCredentials2.AsNoTracking()
+                .Join(_context.CredentialPackages2.AsNoTracking(),
+                    vc => vc.CredentialPackageId,
+                    cp => cp.CredentialPackageId,
+                    (vc, cp) => new { vc, cp })
+                .GroupBy(x => 1)
+                .Select(g => new
+                {
+                    CredentialedUsers = g.Select(x => x.cp.UserId).Distinct().Count(),
+                    CredentialPackagesGranted = g.Select(x => x.cp.CredentialPackageId).Distinct().Count()
+                }).FirstOrDefaultAsync();
+
+            var credentialsGranted = await _context.CredentialPackages2.AsNoTracking()
+                .Where(cp => !cp.IsDeleted)
+                .Join(_context.VerifiableCredentials2.AsNoTracking().Where(vc => !vc.IsDeleted),
+                    cp => cp.CredentialPackageId,
+                    vc => vc.CredentialPackageId,
+                    (cp, vc) => vc)
+                .Select(x => x.VerifiableCredentialId)
+                .CountAsync();
+
+            var users = await _context.Users.AsNoTracking()
+                .OrderBy(x => x.EmailConfirmed).ThenBy(x => x.Email)
+                .Select(x => new CredentialsReportUserDto
+                {
+                    DisplayName = x.DisplayName,
+                    UserName = x.UserName,
+                    EmailConfirmed = x.EmailConfirmed,
+                    CreatedAt = x.CreatedAt,
+                    ModifiedAt = x.ModifiedAt
+                })
+                .ToListAsync();
+
+            return new CredentialsReportDto
+            {
+                OfferedUsers = offersResult?.OfferedUsers ?? 0,
+                Offers = offersResult?.Offers ?? 0,
+                CredentialedUsers = credentialsResult?.CredentialedUsers ?? 0,
+                CredentialPackagesGranted = credentialsResult?.CredentialPackagesGranted ?? 0,
+                CredentialsGranted = credentialsGranted,
+                DateGenerated = DateTime.UtcNow,
+                Users = users.ToArray()
+            };
         }
     }
 }

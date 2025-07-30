@@ -30,6 +30,10 @@ namespace OpenCredentialPublisher.Data.Custom.EFModels
 
         public Achievement Achievement { get; set; }
         public List<Evidence> Evidences { get; set; } = new();
+        public List<Association> SourceAssociations { get; set; } = new();
+        public List<Association> TargetAssociations { get; set; } = new();
+
+        public bool IsChild { get; set; }
 
         public DateTimeOffset CreatedAt { get; set; }
         public DateTimeOffset? ModifiedAt { get; set; }

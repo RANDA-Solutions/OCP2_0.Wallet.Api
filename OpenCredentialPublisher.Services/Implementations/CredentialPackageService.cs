@@ -58,7 +58,7 @@ namespace OpenCredentialPublisher.Services.Implementations
         public async Task<CredentialPackage> GetAsync(string userId, long credentialPackageId)
         {
             var baseQuery = _context.CredentialPackages2.Where(cp => cp.UserId == userId && cp.CredentialPackageId == credentialPackageId);
-
+            
             return await IncludeDependencies(baseQuery).FirstOrDefaultAsync();
         }
 
@@ -74,31 +74,27 @@ namespace OpenCredentialPublisher.Services.Implementations
 
         private IQueryable<CredentialPackage> IncludeDependencies(IQueryable<CredentialPackage> query)
         {
-            return query.Include(p => p.VerifiableCredentials)
+            return query.Include(p => p.VerifiableCredentials.Where(vc => !vc.IsChild))
                 .ThenInclude(vc => vc.Evidences)
-                .Include(p => p.VerifiableCredentials)
+                .Include(p => p.VerifiableCredentials.Where(vc => !vc.IsChild))
                 .ThenInclude(vc => vc.ShareVerifiableCredentials)
-                .Include(p => p.VerifiableCredentials)
+                .Include(p => p.VerifiableCredentials.Where(vc => !vc.IsChild))
                 .ThenInclude(vc => vc.CredentialCollectionVerifiableCredentials)
                     .ThenInclude(ccvc => ccvc.CredentialCollection)
                         .ThenInclude(cc => cc.ShareCredentialCollections)
-                .Include(p => p.VerifiableCredentials)
+                .Include(p => p.VerifiableCredentials.Where(vc => !vc.IsChild))
                 .ThenInclude(vc => vc.ShareVerifiableCredentials)
-                .Include(p => p.VerifiableCredentials)
+                .Include(p => p.VerifiableCredentials.Where(vc => !vc.IsChild))
                 .ThenInclude(vc => vc.IssuerProfile)
-                .Include(p => p.VerifiableCredentials)
-                .ThenInclude(vc => vc.Achievement)
-                .ThenInclude(a => a.Creator)
-                .Include(p => p.VerifiableCredentials)
-                .ThenInclude(vc => vc.Achievement)
-                .ThenInclude(a => a.Alignments)
-                .Include(p => p.VerifiableCredentials)
-                .ThenInclude(vc => vc.Achievement)
-                .ThenInclude(a => a.Source)
-                .Include(p => p.VerifiableCredentials)
-                .ThenInclude(vc => vc.Achievement)
-                .ThenInclude(a => a.Identifier)
-                .Include(p => p.VerifiableCredentials)
+                .Include(p => p.VerifiableCredentials.Where(vc => !vc.IsChild))
+                .ThenInclude(vc => vc.Achievement.Creator)
+                .Include(p => p.VerifiableCredentials.Where(vc => !vc.IsChild))
+                .ThenInclude(vc => vc.Achievement.Alignments)
+                .Include(p => p.VerifiableCredentials.Where(vc => !vc.IsChild))
+                .ThenInclude(vc => vc.Achievement.Source)
+                .Include(p => p.VerifiableCredentials.Where(vc => !vc.IsChild))
+                .ThenInclude(vc => vc.Achievement.Identifier)
+                .Include(p => p.VerifiableCredentials.Where(vc => !vc.IsChild))
                 .ThenInclude(vc => vc.ParentVerifiableCredential);
         }
     }

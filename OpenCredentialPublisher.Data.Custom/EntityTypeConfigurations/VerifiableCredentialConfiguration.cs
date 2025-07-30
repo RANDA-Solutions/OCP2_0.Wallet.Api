@@ -92,6 +92,15 @@ namespace OpenCredentialPublisher.Data.Custom.EntityTypeConfigurations
                 .HasForeignKey(aa => aa.VerifiableCredentialId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasMany(a => a.SourceAssociations)
+                .WithOne(aa => aa.SourceVerifiableCredential)
+                .HasForeignKey(aa => aa.SourceVerifiableCredentialId)
+                .OnDelete(DeleteBehavior.Restrict);
+            builder.HasMany(a => a.TargetAssociations)
+                .WithOne(aa => aa.TargetVerifiableCredential)
+                .HasForeignKey(aa => aa.TargetVerifiableCredentialId)
+                .OnDelete(DeleteBehavior.Restrict);
+
 
             builder.HasMany(vc => vc.Results)
                 .WithOne(r => r.VerifiableCredential)

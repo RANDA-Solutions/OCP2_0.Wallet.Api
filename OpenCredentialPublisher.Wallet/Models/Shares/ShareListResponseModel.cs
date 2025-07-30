@@ -10,6 +10,7 @@ namespace OpenCredentialPublisher.Wallet.Models.Shares
             ShareId = share.ShareId;
             Email = share.Email;
             Description = share.Description;
+            ShareType = share.ShareType;
             CreatedAt = share.CreatedAt.DateTime;
             CredentialCount = share.TotalCredentialCount;
         }
@@ -17,6 +18,7 @@ namespace OpenCredentialPublisher.Wallet.Models.Shares
         public long ShareId { get; }
         public string Email { get; }
         public string Description { get; }
+        public string ShareType { get; }
         public int CredentialCount { get; }
         public DateTime CreatedAt { get; }
 

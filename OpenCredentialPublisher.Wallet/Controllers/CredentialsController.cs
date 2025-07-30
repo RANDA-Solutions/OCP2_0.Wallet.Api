@@ -15,6 +15,8 @@ using OpenCredentialPublisher.Data.Custom.Commands;
 using OpenCredentialPublisher.Wallet.Models.Revocation;
 using Microsoft.Extensions.Options;
 using OpenCredentialPublisher.Data.Custom.Options;
+using OpenCredentialPublisher.Shared.Custom.Models;
+using OpenCredentialPublisher.Shared.Custom.Models.Enums;
 
 namespace OpenCredentialPublisher.Wallet.Controllers
 {
@@ -26,10 +28,10 @@ namespace OpenCredentialPublisher.Wallet.Controllers
 
 
         public CredentialsController(UserManager<ApplicationUser> userManager,
-            ILogger<CredentialsController> logger, 
+            ILogger<CredentialsController> logger,
             CredentialService credentialService,
             RevocationService revocationService,
-            IOptions<SiteSettingsOptions> siteSettings) : base(userManager,logger)
+            IOptions<SiteSettingsOptions> siteSettings) : base(userManager, logger)
         {
             _credentialService = credentialService;
             _revocationService = revocationService;
@@ -97,7 +99,7 @@ namespace OpenCredentialPublisher.Wallet.Controllers
                     throw new ApiModelNotFoundException("The specified credential was not found.");
                 }
 
-                var credentialCardResponseViewModel = CredentialCardResponseModel.FromModel(_userId,verifiableCredential);
+                var credentialCardResponseViewModel = CredentialCardResponseModel.FromModel(_userId, verifiableCredential);
 
                 return ApiOk(credentialCardResponseViewModel);
             }
@@ -109,7 +111,7 @@ namespace OpenCredentialPublisher.Wallet.Controllers
         }
 
         [HttpDelete("{id}")]
-        [ProducesResponseType(200, Type = typeof(ApiResponse))]  /* success returns 204 - No Content */
+        [ProducesResponseType(204)]  /* success returns 204 - No Content */
         public async Task<IActionResult> DeleteAsync(long id)
         {
             try
@@ -126,5 +128,35 @@ namespace OpenCredentialPublisher.Wallet.Controllers
             }
         }
 
+        [HttpGet("report")]
+        [ProducesResponseType(200, Type = typeof(CredentialsReportDto))]
+        [Produces("application/json", new string[] { "text/csv" })]
+        public async Task<IActionResult> GetReportAsync()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var authorized = await _userManager.IsInRoleAsync(user, RoleEnum.SystemAdmin);
+            if (!authorized)
+            {
+                return Forbid();
+            }
+
+            try
+            {
+                var report = await _credentialService.GetCredentialsReportAsync();
+
+                if (Request.Headers.Accept.Any(header => header.Contains("text/csv", StringComparison.OrdinalIgnoreCase)))
+                {
+                    var csv = report.ToCsv();
+                    return File(new System.Text.UTF8Encoding().GetBytes(csv), "text/csv", $"CredentialsReport_{DateTime.UtcNow:yyyyMMddHHmmss}.csv");
+                }
+
+                return ApiOk(report);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "CredentialsController.GetReportAsync");
+                throw;
+            }
+        }
     }
 }

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.AzureAppConfiguration;
 using Microsoft.Extensions.Hosting;
 using OpenCredentialPublisher.Data.Options;
+using OpenCredentialPublisher.Wallet;
 using Serilog;
 
 namespace OpenCredentialPublisher.Wallet
@@ -39,14 +40,14 @@ namespace OpenCredentialPublisher.Wallet
             var builder = Host.CreateDefaultBuilder(args)
                 .ConfigureAppConfiguration((context, builder) =>
                 {
-                    if (context.HostingEnvironment.IsDevelopmentOrLocalhost())
+                    if (context.HostingEnvironment.IsDevelopmentOrLocalhost()) 
                         builder.AddUserSecrets<Program>();
                     var configuration = builder.Build();
                     builder.AddAzureAppConfiguration(config =>
                     {
                         var azureAppConfiguration = configuration.GetRequiredSection(AzureAppConfigConfiguration.SectionName).Get<AzureAppConfigConfiguration>();
                         if (azureAppConfiguration == null)
-                            throw new Exception("Azure App Configuration is not configured");
+                            throw new System.Exception("Azure App Configuration is not configured");
                         config.Connect(azureAppConfiguration.ConnectionString)
                             .Select(KeyFilter.Any, LabelFilter.Null)
                             .Select(KeyFilter.Any, azureAppConfiguration.Label);
