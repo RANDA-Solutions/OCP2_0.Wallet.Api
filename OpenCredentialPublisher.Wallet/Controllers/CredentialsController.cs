@@ -23,6 +23,7 @@ namespace OpenCredentialPublisher.Wallet.Controllers
     public class CredentialsController : SecureApiControllerBase<CredentialsController>
     {
         private readonly CredentialService _credentialService;
+        private readonly ETLService _etlService;
         private readonly RevocationService _revocationService;
         private readonly SiteSettingsOptions _siteSettings;
 
@@ -30,10 +31,12 @@ namespace OpenCredentialPublisher.Wallet.Controllers
         public CredentialsController(UserManager<ApplicationUser> userManager,
             ILogger<CredentialsController> logger,
             CredentialService credentialService,
+            ETLService etlService,
             RevocationService revocationService,
             IOptions<SiteSettingsOptions> siteSettings) : base(userManager, logger)
         {
             _credentialService = credentialService;
+            _etlService = etlService;
             _revocationService = revocationService;
             _siteSettings = siteSettings.Value;
         }
