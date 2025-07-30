@@ -17,6 +17,7 @@ namespace OpenCredentialPublisher.Wallet.Models.Packages
             ShareCount = credentialPackage.VerifiableCredentials.SelectMany(vc => vc.ShareVerifiableCredentials).Count() + 
                          credentialPackage.VerifiableCredentials.SelectMany(vc => vc.CredentialCollectionVerifiableCredentials).Select(ccvc => ccvc.CredentialCollection.ShareCredentialCollections).Count();
             VerifiableCredentialIds = credentialPackage.ChildVerifiableCredentials
+                .Where(cvc => !cvc.IsChild)
                 .Select(cvc => cvc.VerifiableCredentialId)
                 .ToImmutableList();
             IsVerified = credentialPackage.ParentVerifiableCredential.IsVerified;

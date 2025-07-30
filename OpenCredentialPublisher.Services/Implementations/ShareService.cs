@@ -191,6 +191,7 @@ namespace OpenCredentialPublisher.Services.Implementations
             {
                 Email = command.Email,
                 Description = command.Description,
+                ShareType = "email",
                 ShareSecureHash = WebEncoders.Base64UrlEncode(CryptoRandom.CreateRandomKey(38)),
                 AccessCode = AccessCodeGenerator.GenerateUniqueNumericCode(CryptoRandom.CreateRandomKey(10)),
                 ShareCredentialCollections = credentialCollections
@@ -241,6 +242,53 @@ namespace OpenCredentialPublisher.Services.Implementations
             shareMessage.StatusId = StatusEnum.Sent;
             _context.Messages.Update(shareMessage);
             await _context.SaveChangesAsync();
+
+            return share;
+        }
+
+        public async Task<Share> AddAsyncShareType(string userId, ShareAddShareTypeCommand command)
+        {
+            var user = await _context.Users
+                .Where(u => u.Id == userId)
+                .FirstOrDefaultAsync();
+
+            if (user == null)
+                throw new ArgumentNullException(nameof(user), $"User not found with userId: {userId}");
+
+            // get credentials and ensure they are ours
+            var verifiableCredentials = await _context.CredentialPackages2
+                .Include(cp => cp.VerifiableCredentials)
+                .Where(cp => cp.UserId == userId)
+                .SelectMany(cp => cp.VerifiableCredentials)
+                .Where(vc => vc.ParentVerifiableCredentialId != null)
+                .Where(vc => command.VerifiableCredentialIds.Contains(vc.VerifiableCredentialId))
+                .ToListAsync();
+
+            // get collections
+            var credentialCollections = await _context.CredentialCollection2
+                .Where(cc => cc.UserId == userId)
+                .Where(cc => command.CredentialCollectionIds.Contains(cc.CredentialCollectionId))
+                .ToListAsync();
+
+            var share = new Share
+            {
+                Email = "",
+                Description = "",
+                ShareType = command.ShareType,
+                ShareSecureHash = WebEncoders.Base64UrlEncode(CryptoRandom.CreateRandomKey(38)),
+                AccessCode = AccessCodeGenerator.GenerateUniqueNumericCode(CryptoRandom.CreateRandomKey(10)),
+                ShareCredentialCollections = credentialCollections
+                    .Select(cc => new ShareCredentialCollection() { CredentialCollection = cc }).ToList(),
+                ShareVerifiableCredentials = verifiableCredentials
+                    .Select(vc => new ShareVerifiableCredential() { VerifiableCredential = vc }).ToList(),
+                User = user,
+            };
+
+            await _context.Shares.AddAsync(share);
+            // I hate this but need the share ID for the message!
+            await _context.SaveChangesAsync();
+
+            share.ShareSecureUrl = $"{_siteSettings.SpaClientUrl}/public/shares/{share.ShareId}/?hash={share.ShareSecureHash}";
 
             return share;
         }

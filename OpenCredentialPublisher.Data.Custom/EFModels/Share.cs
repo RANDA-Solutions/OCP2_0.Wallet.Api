@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using OpenCredentialPublisher.Data.Models;
 using OpenCredentialPublisher.Shared.Interfaces;
@@ -21,6 +22,8 @@ namespace OpenCredentialPublisher.Data.Custom.EFModels
 
         public string AccessCode { get; set; }
 
+        public string ShareType { get; set; }
+
         public bool IsDeleted { get; set; }
         public List<ShareVerifiableCredential> ShareVerifiableCredentials { get; set; } = new();
         public List<ShareCredentialCollection> ShareCredentialCollections { get; set; } = new();
@@ -28,6 +31,8 @@ namespace OpenCredentialPublisher.Data.Custom.EFModels
 
         public DateTimeOffset? ModifiedAt { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
+        [NotMapped]
+        public string ShareSecureUrl { get; set; }
 
         public void Delete()
         {

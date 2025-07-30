@@ -6,6 +6,9 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using LevelData.Credentials.DIDForge.Abstractions;
+using LevelData.Credentials.DIDForge.Extensions;
+using LevelData.Credentials.DIDForge.Services;
 using Microsoft.AspNetCore.WebUtilities;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -18,21 +21,23 @@ using JwtHeader = OpenCredentialPublisher.Proof.Models.JwtHeader;
 
 namespace OpenCredentialPublisher.Proof
 {
-    public class ProofService
+    public class ProofService : IProofService
     {
 
         private readonly Regex _keyDid;
         private readonly Regex _isDid;
         private readonly Regex _isUrl;
         private readonly Regex _jwsRegex;
+        private readonly DidResolver _didResolver;
 
 
-        public ProofService()
+        public ProofService(DidResolver didResolver)
         {
             _jwsRegex = new Regex("(?<header>[a-zA-Z0-9+_]+)?\\.(?<body>[a-zA-Z0-9+_]+)?\\.(?<signature>[a-zA-Z0-9+-_]+)");
             _keyDid = new Regex("did:key:(?<key>[a-km-zA-HJ-NP-Z1-9]+)");
             _isDid = new Regex("^did:");
             _isUrl = new Regex("^http[s]?:");
+            _didResolver = didResolver;
         }
 
         public async Task<bool> VerifyProof(string originalJson)
@@ -82,15 +87,18 @@ namespace OpenCredentialPublisher.Proof
                 "Ed25519VerificationKey2020" => KeyAlgorithmEnum.Ed25519,
                 _ => KeyAlgorithmEnum.RSA
             };
+
             var verifydata = jsonldSignature.CreateVerifyData(document, proofJson);
             var publicKeyBytes = await GetPublicKeyAsync(proof);
+            if (publicKeyBytes == null)
+                return false;
 
             var signature = GetSignature(proof);
             byte[] signatureBytes;
             if (signature.StartsWith("z"))
             {
                 signatureBytes = CryptoMethods.Base58DecodeString(signature);
-                
+
             }
             else
             {
@@ -141,17 +149,14 @@ namespace OpenCredentialPublisher.Proof
             }
             if (verificationMethod != null && _isDid.IsMatch(verificationMethod))
             {
-                if (_keyDid.IsMatch(verificationMethod))
-                {
-                    var match = _keyDid.Match(verificationMethod);
-                    var group = match.Groups["key"];
-                    var keyValue = group.Value;
-                    var bytes = CryptoMethods.Base58DecodeString(keyValue);
-                    var length = bytes.Length - 32;
-
-                    return length > 0 ? bytes.Skip(length).ToArray() : bytes;
+                var resolver = _didResolver.GetResolver(verificationMethod);
+                var didDocument = await resolver.ResolveDidDocumentAsync(verificationMethod);
+                var publicKeyMultibase = didDocument.GetPublicKeyMultibaseForUse(verificationMethod, proof.ProofPurpose);
+                if (publicKeyMultibase != null) {
+                    var keyBytes = CryptoMethods.Base58DecodeString(publicKeyMultibase);
+                    var length = keyBytes.Length - 32;
+                    return length > 0 ? keyBytes.Skip(length).ToArray() : keyBytes;
                 }
-                throw new NotImplementedException($"The did method {proof.VerificationMethod} is not supported");
             }
             if (verificationMethod != null && _isUrl.IsMatch(verificationMethod))
             {

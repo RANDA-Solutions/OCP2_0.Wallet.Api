@@ -27,6 +27,7 @@ namespace OpenCredentialPublisher.Data.Custom.Contexts
                 .ApplyConfiguration(new NotificationConfiguration())
                 .ApplyConfiguration(new AchievementConfiguration())
                 .ApplyConfiguration(new AchievementAlignmentConfiguration())
+                .ApplyConfiguration(new AssociationConfiguration())
                 .ApplyConfiguration(new SearchCredentialPackageConfiguration())
                 .ApplyConfiguration(new SearchCredentialPackageAchievementTypeConfiguration())
                 .ApplyConfiguration(new SearchCredentialPackageIssuerConfiguration())
@@ -66,6 +67,7 @@ namespace OpenCredentialPublisher.Data.Custom.Contexts
         public DbSet<Achievement> Achievements2 { get; set; }
         public DbSet<AchievementIdentity> AchievementIdentities2 { get; set; }
         public DbSet<CredentialCollection> CredentialCollection2 { get; set; }
+        public DbSet<Association> Associations2 { get; set; } // Keeping the 2 for now for consistency
 
         public DbSet<SearchCredentialPackage> SearchCredentialPackages { get; set; }
         public DbSet<SearchCredential> SearchCredentials { get; set; }

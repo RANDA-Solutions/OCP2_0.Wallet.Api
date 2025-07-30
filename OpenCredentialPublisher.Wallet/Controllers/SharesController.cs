@@ -8,6 +8,7 @@ using System;
 using System.Linq;
 using OpenCredentialPublisher.Wallet.Models.Shares;
 using OpenCredentialPublisher.Services.Implementations;
+using OpenCredentialPublisher.Shared.Custom.Models;
 
 namespace OpenCredentialPublisher.Wallet.Controllers
 {
@@ -67,6 +68,21 @@ namespace OpenCredentialPublisher.Wallet.Controllers
             var share = await _shareService.AddAsync(_userId,model.ToCommand());
 
             return ApiOk(share.ShareId);
+        }
+
+        [HttpPut("ShareType")]
+        [ProducesResponseType(200, Type = typeof(ShareResultDto))]  /* success returns 200 - Ok */
+        public async Task<IActionResult> AddAsyncShareType(ShareAddRequestShareTypeModel model)
+        {
+            var share = await _shareService.AddAsyncShareType(_userId, model.ToCommand());
+
+            var shareResult = new
+            {
+                shareId = share.ShareId,
+                shareSecureUrl = share.ShareSecureUrl
+            };
+
+            return ApiOk(shareResult);
         }
 
         [HttpPost("collections/credentials")]

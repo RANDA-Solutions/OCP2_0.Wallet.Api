@@ -7,12 +7,13 @@ using NJsonSchema.NewtonsoftJson.Generation;
 using OpenCredentialPublisher.Data.Abstracts;
 using OpenCredentialPublisher.Data.Custom.CredentialModels;
 using OpenCredentialPublisher.Services.Extensions;
+using OpenCredentialPublisher.Services.Interfaces;
 
 // ReSharper disable InconsistentNaming
 
 namespace OpenCredentialPublisher.Services.Implementations
 {
-    public class SchemaService
+    public class SchemaService : ISchemaService
     {
         private static readonly NewtonsoftJsonSchemaGeneratorSettings _jsonSchemaSettings = new()
         {
@@ -86,13 +87,15 @@ namespace OpenCredentialPublisher.Services.Implementations
                         ValidateObject((JObject)jProperty.Value, errors, propertyPath);
                     }
                     // special case to handle arrays of objects
-                    else if (jProperty.Value.Type == JTokenType.Array &&
-                             jProperty.Values().Any(jpv => jpv.Type == JTokenType.Object))
+                    else if (jProperty.Value.Type == JTokenType.Array)
                     {
                         // iterate over all array values and recursively call this function
                         foreach (var jPropertyValue in (JArray)jProperty.Value)
                         {
-                            ValidateObject((JObject)jPropertyValue, errors, propertyPath);
+                            if (jPropertyValue.Type == JTokenType.Object)
+                                ValidateObject((JObject)jPropertyValue, errors, propertyPath);
+                            else
+                                ValidateProperty(jsonSchema, jProperty, errors, propertyPath);
                         }
                     }
                     else

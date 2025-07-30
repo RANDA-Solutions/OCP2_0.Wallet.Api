@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using OpenCredentialPublisher.Proof;
 using OpenCredentialPublisher.Services.Implementations;
+using OpenCredentialPublisher.Services.Interfaces;
 
 namespace OpenCredentialPublisher.DependencyInjection
 {
@@ -27,6 +28,7 @@ namespace OpenCredentialPublisher.DependencyInjection
             services.AddTransient<EmailService>();
             services.AddTransient<LogHttpClientService>();
             services.AddTransient<SchemaService>();
+            services.AddTransient<ISchemaService, SchemaService>();
             services.AddTransient<ETLService>();
             services.AddTransient<CredentialPackageService>();
             services.AddTransient<ShareService>();
@@ -35,7 +37,9 @@ namespace OpenCredentialPublisher.DependencyInjection
             services.AddTransient<NotificationService>();
             services.AddTransient<EvidenceService>();
             services.AddTransient<ProofService>();
+            services.AddTransient<IProofService, ProofService>();
             services.AddTransient<RevocationService>();
+            services.AddTransient<IRevocationService, RevocationService>();
 
             return services;
         }
