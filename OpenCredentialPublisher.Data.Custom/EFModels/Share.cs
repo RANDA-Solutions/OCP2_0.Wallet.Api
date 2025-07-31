@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using OpenCredentialPublisher.Data.Models;
@@ -21,7 +23,7 @@ namespace OpenCredentialPublisher.Data.Custom.EFModels
         public string Description { get; set; }
 
         public string AccessCode { get; set; }
-
+        [Required, MaxLength(30), DefaultValue("email")]
         public string ShareType { get; set; }
 
         public bool IsDeleted { get; set; }
